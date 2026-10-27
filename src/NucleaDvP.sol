@@ -7,6 +7,8 @@ import {SafeERC20} from "@openzeppelin/contracts@5.4.0/token/ERC20/utils/SafeERC
 import {Ownable} from "@openzeppelin/contracts@5.4.0/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts@5.4.0/utils/ReentrancyGuard.sol"; // 5.x: saiu de security/
 
+import {INucleaDvP, ICCBTokenDvP} from "./interfaces/INucleaDvP.sol";
+
 // Fluxo:
 //   Nuclea  createBasket(holder, ids)            CCBs bloqueadas na carteira do holder;
 //                                                evento BasketCreated -> BEE4 conhece a cesta
@@ -16,36 +18,9 @@ import {ReentrancyGuard} from "@openzeppelin/contracts@5.4.0/utils/ReentrancyGua
 //                                                CCBs holder -> comprador, BRLN comprador -> holder
 // Nenhum ativo fica custodiado em contrato: CCBs e BRLN aparecem sempre nas carteiras.
 
-interface ICCBTokenDvP {
-    function ownerOf(uint256 tokenId) external view returns (address);
-    function ccbData(uint256 tokenId) external view returns (string memory ipoc, uint256 faceValue, uint64 maturity);
-    function locked(uint256 tokenId) external view returns (bool);
-    function setLock(uint256 tokenId, bool value) external;
-    function dvpTransfer(address from, address to, uint256 tokenId) external;
-}
-
-contract NucleaDvP is Ownable, ReentrancyGuard {
+// Tipos, eventos e assinaturas: ./interfaces/INucleaDvP.sol
+contract NucleaDvP is INucleaDvP, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
-
-    enum BasketState { None, Open, InTrade, Settled, Dissolved }
-    enum TradeStatus { None, Registered, Executed, Cancelled }
-
-    struct Basket {
-        address holder;
-        BasketState state;
-        uint64 minMaturity;
-        uint256 totalFaceValue;
-        uint256 tradeId;
-    }
-
-    struct Trade {
-        uint256 basketId;
-        address holder;
-        address buyer;
-        uint256 price;      // unidades minimas de BRLN
-        uint64 expiresAt;
-        TradeStatus status;
-    }
 
     uint256 public constant MAX_CCB_PER_BASKET = 25;
 
@@ -59,21 +34,6 @@ contract NucleaDvP is Ownable, ReentrancyGuard {
     mapping(uint256 => Basket) private _baskets;
     mapping(uint256 => uint256[]) private _tokenIds;
     mapping(uint256 => Trade) private _trades;
-
-    event OperatorSet(address indexed operator, bool nuclea, bool allowed);
-    /// @notice Evento lido pela BEE4: composicao completa da cesta.
-    event BasketCreated(uint256 indexed basketId, address indexed holder, uint256[] tokenIds,
-        uint256 totalFaceValue, uint64 minMaturity);
-    /// @notice Nova composicao completa apos addCCBs.
-    event BasketUpdated(uint256 indexed basketId, address indexed holder, uint256[] tokenIds,
-        uint256 totalFaceValue, uint64 minMaturity);
-    event BasketDissolved(uint256 indexed basketId);
-    /// @notice Evento lido pela Nuclea: a BEE4 definiu comprador e preco; Nuclea executa o DvP.
-    event TradeRegistered(uint256 indexed tradeId, uint256 indexed basketId, address indexed holder,
-        address buyer, uint256 price, uint64 expiresAt, uint256[] tokenIds, uint256 totalFaceValue);
-    event DvPExecuted(uint256 indexed tradeId, uint256 indexed basketId, address indexed buyer,
-        address holder, uint256 price);
-    event TradeCancelled(uint256 indexed tradeId, address indexed by);
 
     modifier onlyNuclea() { require(isNucleaOperator[msg.sender], "Nuclea only"); _; }
     modifier onlyBee4() { require(isBee4Operator[msg.sender], "BEE4 only"); _; }
