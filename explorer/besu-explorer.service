@@ -1,0 +1,32 @@
+[Unit]
+Description=Besu Explorer (explorer leve com banco em memoria)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=besu-explorer
+Group=besu-explorer
+# RPC e BRLN ficam em /etc/besu-explorer/besu-explorer.json e sao editados pela tela /config.
+# Nao passe --rpc/--brln aqui, senao eles prevalecem sobre a tela a cada reinicio.
+ExecStart=/usr/local/bin/besu-explorer --config /etc/besu-explorer/besu-explorer.json --listen :8080
+# Para proteger a tela /config, descomente e defina uma senha:
+#Environment=EXPLORER_ADMIN_PASSWORD=troque-esta-senha
+Restart=always
+RestartSec=5
+
+# endurecimento
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/etc/besu-explorer
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=2G
+
+[Install]
+WantedBy=multi-user.target
