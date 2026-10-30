@@ -1,0 +1,22 @@
+{{define "content"}}
+<header class="pagehead"><div class="ph-text"><span class="eyebrow">Explorer</span><h1>Transações</h1></div>{{template "grafismo"}}</header>
+<section class="panel">
+  <table>
+    <thead><tr><th>txId</th><th>Bloco</th><th>Data/hora</th><th>Método</th><th>De</th><th>Para</th><th>Status</th></tr></thead>
+    <tbody id="lv-txs" data-live="rows">
+    {{range .Txs}}
+      <tr data-key="{{.Hash.Hex}}">
+        <td>{{template "txlink" .Hash}}</td>
+        <td><a href="/block/{{.BlockNumber}}">{{int .BlockNumber}}</a></td>
+        <td>{{time .Timestamp}}</td>
+        <td><span class="tag">{{with method .Input}}{{.}}{{else}}{{if .HasContract}}deploy{{else}}transferência{{end}}{{end}}</span></td>
+        <td>{{template "addr" .From}}</td>
+        <td>{{if .HasTo}}{{template "addr" .To}}{{if isToken .To}} <span class="tag tok">{{$.Token.Symbol}}</span>{{end}}{{else}}<span class="muted">criação</span>{{end}}</td>
+        <td>{{template "status" .Status}}</td>
+      </tr>
+    {{else}}<tr><td colspan="7" class="muted">Nenhuma transação indexada.</td></tr>{{end}}
+    </tbody>
+  </table>
+  <div id="lv-pager" data-live="swap">{{template "pager" .Pager}}</div>
+</section>
+{{end}}

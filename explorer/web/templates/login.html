@@ -1,0 +1,26 @@
+{{define "content"}}
+<div class="login">
+  <section class="login-brand">
+    {{template "logo-neg" .}}
+    <div>
+      <span class="eyebrow">NucleaChain · Explorer</span>
+      <h1>Acesse o explorer</h1>
+      <p class="lead">Núclea. Nosso negócio é potencializar o seu.</p>
+    </div>
+    {{template "grafismo"}}
+  </section>
+  <section class="login-form">
+    <span class="eyebrow">Login</span>
+    <h2>Entre com seu usuário</h2>
+    {{if .Err}}<div class="alert err">{{.Err}}</div>{{end}}
+    <form class="cfg" method="post" action="/login">
+      <input type="hidden" name="next" value="{{.Next}}">
+      <label for="user">Usuário</label>
+      <input id="user" name="user" value="{{.Name}}" autocomplete="username" autocapitalize="none" spellcheck="false" required {{if not .Name}}autofocus{{end}}>
+      <label for="password">Senha</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required {{if .Name}}autofocus{{end}}>
+      <div class="actions"><button type="submit">Entrar</button></div>
+    </form>
+  </section>
+</div>
+{{end}}

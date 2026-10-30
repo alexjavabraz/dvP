@@ -1,0 +1,67 @@
+{{define "content"}}
+<header class="pagehead"><div class="ph-text"><span class="eyebrow">Explorer · Transação</span><h1>{{short .Tx.Hash.Hex}}</h1><p class="ph-sub">{{template "status" .Tx.Status}}</p></div>{{template "grafismo"}}</header>
+<section class="panel">
+  <dl class="kv">
+    <dt>txId</dt><dd class="mono wrapall">{{.Tx.Hash.Hex}} {{template "copy" .Tx.Hash.Hex}}</dd>
+    <dt>Status</dt><dd>{{template "status" .Tx.Status}}{{if .Tx.RevertReason}} <code class="wrapall">{{.Tx.RevertReason}}</code>{{else if ne .Tx.Status 1}} <span class="muted small">motivo do revert indisponível (o nó precisa de <code>--revert-reason-enabled</code>)</span>{{end}}</dd>
+    <dt>Bloco</dt><dd><a href="/block/{{.Tx.BlockNumber}}">{{int .Tx.BlockNumber}}</a> · posição {{.Tx.Index}}</dd>
+    <dt>Data/hora</dt><dd>{{time .Tx.Timestamp}} <span class="muted">({{template "ago" .Tx.Timestamp}})</span></dd>
+    <dt>De</dt><dd><a class="mono" href="/address/{{.Tx.From.Hex}}">{{.Tx.From.Hex}}</a>{{template "lbl" .Tx.From}}</dd>
+    <dt>Para</dt><dd>{{if .Tx.HasTo}}<a class="mono" href="/address/{{.Tx.To.Hex}}">{{.Tx.To.Hex}}</a>{{template "lbl" .Tx.To}}{{if isToken .Tx.To}} <span class="tag tok">contrato {{.Token.Symbol}}</span>{{end}}{{else}}<span class="muted">criação de contrato</span>{{end}}</dd>
+    {{if .Tx.HasContract}}<dt>Contrato criado</dt><dd><a class="mono" href="/address/{{.Tx.ContractAddress.Hex}}">{{.Tx.ContractAddress.Hex}}</a>{{template "lbl" .Tx.ContractAddress}}</dd>{{end}}
+    <dt>Valor nativo</dt><dd>{{native .Tx.Value}}</dd>
+    <dt>Gas</dt><dd>{{int .Tx.GasUsed}} usado de {{int .Tx.Gas}} · preço {{int .Tx.GasPrice}} wei</dd>
+    <dt>Nonce</dt><dd>{{.Tx.Nonce}}</dd>
+  </dl>
+</section>
+
+{{if .Transfers}}
+<section class="panel">
+  <h2>Transferências {{.Token.Symbol}}</h2>
+  <table>
+    <thead><tr><th>De</th><th>Para</th><th class="r">Valor ({{.Token.Symbol}})</th></tr></thead>
+    <tbody>
+    {{range .Transfers}}
+      <tr>
+        <td>{{if isZero .From}}<span class="tag">emissão</span>{{else}}{{template "addr" .From}}{{end}}</td>
+        <td>{{if isZero .To}}<span class="tag">queima</span>{{else}}{{template "addr" .To}}{{end}}</td>
+        <td class="r num">{{tok .Value}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
+
+<section class="panel">
+  <h2>Dados de entrada</h2>
+  {{if .HasMethod}}
+    <p><span class="tag">{{.Method.Name}}</span> <code>{{.Method.Sig}}</code></p>
+    {{if .Method.Args}}
+    <table class="args">
+      <thead><tr><th>Parâmetro</th><th>Tipo</th><th>Valor</th></tr></thead>
+      <tbody>{{range .Method.Args}}<tr><td>{{.Name}}</td><td class="muted">{{.Type}}</td><td class="mono wrapall">{{.Value}}</td></tr>{{end}}</tbody>
+    </table>
+    {{end}}
+  {{else if .Tx.Input}}
+    <p class="muted">Função não reconhecida (carregue a ABI com <code>--abi-dir</code> para decodificar).</p>
+  {{else}}
+    <p class="muted">Sem dados de entrada.</p>
+  {{end}}
+  {{if .Tx.Input}}<details><summary>Input bruto ({{len .Tx.Input}} bytes)</summary><pre class="raw">{{hexb .Tx.Input}}</pre></details>{{end}}
+</section>
+
+<section class="panel">
+  <h2>Eventos (logs) <span class="muted">({{len .Logs}})</span></h2>
+  {{range .Logs}}
+  <div class="log">
+    <div class="log-h"><span class="muted">#{{.LogIndex}}</span> {{if .HasDecoded}}<span class="tag">{{.Decoded.Name}}</span>{{else}}<span class="tag gray">desconhecido</span>{{end}} emitido por {{template "addr" .Address}}</div>
+    {{if and .HasDecoded .Decoded.Args}}
+    <table class="args"><tbody>{{range .Decoded.Args}}<tr><td>{{.Name}}</td><td class="muted">{{.Type}}</td><td class="mono wrapall">{{.Value}}</td></tr>{{end}}</tbody></table>
+    {{else}}
+    <div class="mono small wrapall">{{range $i, $t := .Topics}}topic{{$i}}: {{$t.Hex}}<br>{{end}}data: {{hexb .Data}}</div>
+    {{end}}
+  </div>
+  {{else}}<p class="muted">Nenhum evento.</p>{{end}}
+</section>
+{{end}}

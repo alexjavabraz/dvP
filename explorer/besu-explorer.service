@@ -7,11 +7,13 @@ Wants=network-online.target
 Type=simple
 User=besu-explorer
 Group=besu-explorer
-# RPC e BRLN ficam em /etc/besu-explorer/besu-explorer.json e sao editados pela tela /config.
+# RPC e BRLN ficam em /etc/besu-explorer/besu-explorer.json e (com rotulos e logo) sao editados pela tela /explorer-conf/admin.
 # Nao passe --rpc/--brln aqui, senao eles prevalecem sobre a tela a cada reinicio.
 ExecStart=/usr/local/bin/besu-explorer --config /etc/besu-explorer/besu-explorer.json --listen :8080
-# Para proteger a tela /config, descomente e defina uma senha:
+# Todas as paginas exigem login (usuarios admin e client, com senhas padrao).
+# Para trocar as senhas sem recompilar, descomente e defina:
 #Environment=EXPLORER_ADMIN_PASSWORD=troque-esta-senha
+#Environment=EXPLORER_CLIENT_PASSWORD=troque-esta-senha
 Restart=always
 RestartSec=5
 

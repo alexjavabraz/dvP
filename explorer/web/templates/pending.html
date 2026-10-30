@@ -1,0 +1,57 @@
+{{define "content"}}
+<header class="pagehead"><div class="ph-text"><span class="eyebrow">Explorer · Mempool do nó</span><h1>Pendentes</h1></div>{{template "grafismo"}}</header>
+
+{{if .Unavailable}}
+<section class="panel">
+  <h2>API TXPOOL não habilitada no nó</h2>
+  <p>Para ver o mempool, inclua <code>TXPOOL</code> nas APIs JSON-RPC do Besu e reinicie o nó:</p>
+  <pre class="raw">--rpc-http-api=ETH,NET,QBFT,TXPOOL</pre>
+  <p class="muted">O restante do explorer continua funcionando sem ela.</p>
+</section>
+{{else if .Err}}
+<div class="banner warn inline">Erro ao consultar o mempool: <code>{{.Err}}</code></div>
+{{else}}
+<section class="cards" id="lv-cards" data-live="swap">
+  <div class="card"><div class="k">No mempool</div><div class="v">{{int .Total}}</div><div class="s">{{if .Filter}}filtradas por endereço{{else}}{{if .HasStats}}capacidade {{int .Stats.MaxSize}}{{end}}{{end}}</div></div>
+  <div class="card"><div class="k">Prontas</div><div class="v">{{int .Ready}}</div><div class="s">entram no próximo bloco</div></div>
+  <div class="card"><div class="k">Aguardando nonce</div><div class="v {{if .Waiting}}warnc{{end}}">{{int .Waiting}}</div><div class="s">paradas por lacuna de nonce</div></div>
+  {{if .HasStats}}<div class="card"><div class="k">Origem</div><div class="v small">{{int .Stats.LocalCount}} locais · {{int .Stats.RemoteCount}} remotas</div><div class="s">local = recebida pelo RPC deste nó</div></div>{{end}}
+</section>
+{{if .Truncated}}<div class="banner info inline">Mostrando as primeiras 1.000 transações do mempool.</div>{{end}}
+
+<section class="panel">
+  <div class="head-row">
+    <h2>Transações no mempool</h2>
+    <form class="filter" action="/pending" method="get">
+      <input name="addr" value="{{.Filter}}" placeholder="filtrar por endereço (de ou para)" spellcheck="false">
+      <button>Filtrar</button>{{if .Filter}}<a href="/pending">limpar</a>{{end}}
+    </form>
+  </div>
+  {{if .BadFilter}}<p class="warnc">Endereço inválido no filtro.</p>{{end}}
+  <table>
+    <thead><tr><th>Situação</th><th>txId</th><th>De</th><th class="r">Nonce</th><th>Para</th><th>Método</th><th class="r">Gas</th><th>No pool</th></tr></thead>
+    <tbody id="lv-pending" data-live="rows">
+    {{range .Rows}}
+      <tr data-key="{{.Hash.Hex}}">
+        <td>{{if eq .State "pronta"}}<span class="badge ready">Pronta</span>
+            {{else if eq .State "aguardando"}}<span class="badge warnb" title="A conta está no nonce {{.AccountNonce}}; falta a transação de nonce {{.WaitingFor}}">Aguardando nonce {{.WaitingFor}}</span>
+            {{else}}<span class="badge err" title="Nonce já usado em bloco; o nó vai descartar">Nonce já usado</span>{{end}}</td>
+        <td>{{template "txlink" .Hash}}</td>
+        <td>{{template "addr" .From}}</td>
+        <td class="r num">{{.Nonce}}<div class="sub">conta: {{.AccountNonce}}</div></td>
+        <td>{{if .HasTo}}{{template "addr" .To}}{{if isToken .To}} <span class="tag tok">{{$.Token.Symbol}}</span>{{end}}{{else}}<span class="muted">criação</span>{{end}}</td>
+        <td><span class="tag">{{with method .Input}}{{.}}{{else}}{{if .HasTo}}transferência{{else}}deploy{{end}}{{end}}</span></td>
+        <td class="r num">{{int .Gas}}</td>
+        <td title="{{if not .AddedAt.IsZero}}{{.AddedAt.Format "02/01/2006 15:04:05"}}{{end}}">{{if .AddedAt.IsZero}}-{{else}}{{template "ago" (unix .AddedAt)}}{{end}}{{if .Local}} <span class="muted small">local</span>{{end}}</td>
+      </tr>
+    {{else}}<tr><td colspan="8" class="muted">Mempool vazio{{if .Filter}} para este endereço{{end}}. No QBFT as transações costumam entrar no bloco seguinte.</td></tr>{{end}}
+    </tbody>
+  </table>
+  <p class="hint muted small">
+    <b>Pronta</b>: nonce na sequência da conta, entra no próximo bloco.
+    <b>Aguardando nonce N</b>: falta uma transação anterior da mesma conta (lacuna de nonce); ela só sai quando a de nonce N for enviada.
+    O mempool é <b>deste nó</b>; os outros nós da rede têm o seu próprio.
+  </p>
+</section>
+{{end}}
+{{end}}

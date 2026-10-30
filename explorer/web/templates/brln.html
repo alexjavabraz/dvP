@@ -1,0 +1,57 @@
+{{define "content"}}
+{{if not .Token.Enabled}}
+<header class="pagehead"><div class="ph-text"><span class="eyebrow">Stablecoin</span><h1>BRLN</h1></div>{{template "grafismo"}}</header><section class="panel"><h2>Página desabilitada</h2><p>Informe o endereço do contrato BRLN na configuração (usuário admin) ou inicie o explorer com <code>--brln 0xENDERECO_DO_CONTRATO</code>.</p></section>
+{{else}}
+<header class="pagehead"><div class="ph-text"><span class="eyebrow">Stablecoin · {{.Token.Name}}</span><h1>{{.Token.Symbol}}</h1></div>{{template "grafismo"}}</header>
+<section class="cards" id="lv-cards" data-live="swap">
+  <div class="card"><div class="k">Contrato</div><div class="v small"><a class="mono" href="/address/{{.Token.Address.Hex}}">{{short .Token.Address.Hex}}</a></div><div class="s">{{.Token.Decimals}} casas decimais</div></div>
+  <div class="card"><div class="k">Supply total</div><div class="v small">{{if .Token.TotalSupply}}{{tok .Token.TotalSupply}}{{else}}-{{end}}</div>
+    <div class="s">{{with .Supply}}{{if eq .State "ok"}}confere com os eventos · bloco {{int .Block}}
+      {{else if eq .State "conferindo"}}conferindo emissão/queima recente…
+      {{else if eq .State "divergente"}}<span class="warnc">eventos somam {{tok .Sum}} · contrato no bloco {{int .Block}}</span>
+      {{else}}conferência após sincronizar{{end}}{{end}}</div></div>
+  <div class="card"><div class="k">Transferências</div><div class="v">{{int .Pager.Total}}</div><div class="s">{{if .Filter}}filtradas por endereço{{else}}todas{{end}}</div></div>
+  <div class="card"><div class="k">Carteiras com saldo</div><div class="v">{{int .Stats.Holders}}</div><div class="s">saldo calculado pelos eventos</div></div>
+</section>
+{{if .Token.Err}}<div class="banner warn inline">Erro ao ler o contrato: <code>{{.Token.Err}}</code></div>{{end}}
+
+<div class="grid2 wide-left">
+  <section class="panel">
+    <div class="head-row">
+      <h2>Transferências</h2>
+      <form class="filter" action="/brln" method="get">
+        <input name="addr" value="{{.Filter}}" placeholder="filtrar por endereço" spellcheck="false">
+        <button>Filtrar</button>{{if .Filter}}<a href="/brln">limpar</a>{{end}}
+      </form>
+    </div>
+    {{if .BadFilter}}<p class="warnc">Endereço inválido no filtro.</p>{{end}}
+    <table>
+      <thead><tr><th>txId</th><th>Bloco</th><th>Data/hora</th><th>De</th><th>Para</th><th class="r">Valor ({{.Token.Symbol}})</th></tr></thead>
+      <tbody id="lv-transfers" data-live="rows">
+      {{range .Transfers}}
+        <tr data-key="{{.TxHash.Hex}}-{{.LogIndex}}">
+          <td>{{template "txlink" .TxHash}}</td>
+          <td><a href="/block/{{.BlockNumber}}">{{int .BlockNumber}}</a></td>
+          <td>{{time .Timestamp}}</td>
+          <td>{{if isZero .From}}<span class="tag">emissão</span>{{else}}{{template "addr" .From}}{{end}}</td>
+          <td>{{if isZero .To}}<span class="tag">queima</span>{{else}}{{template "addr" .To}}{{end}}</td>
+          <td class="r num">{{tok .Value}}</td>
+        </tr>
+      {{else}}<tr><td colspan="6" class="muted">Nenhuma transferência {{if .Filter}}para este endereço{{else}}indexada{{end}}.</td></tr>{{end}}
+      </tbody>
+    </table>
+    <div id="lv-pager" data-live="swap">{{template "pager" .Pager}}</div>
+  </section>
+  <section class="panel">
+    <h2>Maiores saldos</h2>
+    <table>
+      <thead><tr><th>Carteira</th><th class="r">Saldo</th></tr></thead>
+      <tbody id="lv-holders" data-live="rows">
+      {{range .Holders}}<tr data-key="{{.Address.Hex}}"><td>{{template "addr" .Address}}</td><td class="r num">{{tok .Balance}}</td></tr>
+      {{else}}<tr><td colspan="2" class="muted">Nenhum saldo.</td></tr>{{end}}
+      </tbody>
+    </table>
+  </section>
+</div>
+{{end}}
+{{end}}

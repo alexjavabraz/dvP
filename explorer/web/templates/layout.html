@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{.Title}} · Núclea Explorer</title>
+<script>(function(d){try{var t=localStorage.getItem("besu-explorer-theme");if(t==="light"||t==="dark")d.setAttribute("data-theme",t)}catch(e){}
+try{if(!sessionStorage.getItem("bx-splash"))d.classList.add("bx-splash");else if(sessionStorage.getItem("bx-nav"))d.classList.add("bx-nav")}catch(e){}})(document.documentElement)</script>
+<link rel="preload" href="/static/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/dm-mono-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E%3Cpolygon points='6,9 18,9 25,16 18,23 6,23' fill='%23cc99ff'/%3E%3C/svg%3E">
+</head>
+<body data-ui-theme="{{.UITheme}}" data-now="{{.Now}}"{{if .Live}} data-live="{{.Live}}" data-live-mode="{{if eq .Nav "pending"}}poll{{else}}block{{end}}"{{end}}>
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="/" aria-label="Núclea Explorer · início">{{template "logo-neg" .}}<span class="brand-sep"></span><span class="brand-name">EXPLORER</span></a>
+    {{if .User}}
+    <nav>
+      <a href="/" {{if eq .Nav "home"}}class="on"{{end}}>Início</a>
+      <a href="/blocks" {{if eq .Nav "blocks"}}class="on"{{end}}>Blocos</a>
+      <a href="/txs" {{if eq .Nav "txs"}}class="on"{{end}}>Transações</a>
+      <a href="/pending" {{if eq .Nav "pending"}}class="on"{{end}}>Pendentes</a>
+      {{if .Token.Enabled}}<a href="/brln" {{if eq .Nav "brln"}}class="on"{{end}}>{{.Token.Symbol}}</a>{{end}}
+      {{if .User.IsAdmin}}<a href="{{.Admin}}" {{if eq .Nav "config"}}class="on"{{end}}>Config</a>{{end}}
+    </nav>
+    <form class="search" action="/search" method="get">
+      <input name="q" placeholder="txId, bloco, endereço ou rótulo" aria-label="Buscar por txId, bloco, endereço ou rótulo" autocomplete="off" spellcheck="false">
+      <button type="submit">Buscar</button>
+    </form>
+    {{end}}
+    <div class="tools">
+      {{if .User}}<button type="button" id="live-toggle" class="live" hidden aria-pressed="true"><span class="dot"></span><span class="lbl">Ao vivo</span></button>{{end}}
+      <button type="button" id="theme-toggle" class="icon-btn" hidden aria-label="Alternar tema claro/escuro" title="Alternar tema claro/escuro">
+        <svg class="ti-moon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        <svg class="ti-sun" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      {{with .User}}
+      <span class="user" title="Conectado como {{.Name}}"><span class="user-role {{if .IsAdmin}}is-admin{{end}}">{{.Role}}</span></span>
+      <form method="post" action="/logout" class="inline"><button type="submit" class="link exit">Sair</button></form>
+      {{end}}
+    </div>
+  </div>
+</header>
+
+<div id="banners">
+{{if .User}}
+{{with .Status}}
+  <div class="netbar {{if .RecentErr}}netbar--error{{else if .InitialDone}}netbar--ok{{end}}"><div class="wrap">
+    {{if .RecentErr}}FALHA AO CONSULTAR O NÓ · ÚLTIMO BLOCO INDEXADO {{int (usub .Next 1)}}
+    {{else if .InitialDone}}NÓ CONECTADO · CHAIN {{.ChainID}} · BLOCO {{int .Head}}
+    {{else if .Head}}SINCRONIZANDO {{pct .Percent}}% · BLOCO {{int .Next}} DE {{int .Head}}
+    {{else}}CONECTANDO AO NÓ...{{end}}
+  </div></div>
+  {{if .Syncing}}{{if not .InitialDone}}
+  <div class="banner info"><div class="wrap">
+    Sincronizando: bloco <b>{{int .Next}}</b> de <b>{{int .Head}}</b> ({{pct .Percent}}%){{if gt .Rate 0.0}} · {{pct .Rate}} blocos/s · faltam ~{{dur .ETA}}{{end}}.
+    As páginas já funcionam com o que foi indexado.
+  </div></div>
+  {{end}}{{end}}
+  {{if .LastErr}}
+  <div class="banner warn"><div class="wrap">Último erro do indexador ({{.LastErrAt.Format "15:04:05"}}): <code>{{.LastErr}}</code></div></div>
+  {{end}}
+{{end}}
+{{end}}
+</div>
+
+<main class="wrap">
+{{template "content" .}}
+</main>
+
+<footer class="wrap foot" id="lv-foot">
+  <span>NÚCLEA EXPLORER {{.Version}} · BANCO EM MEMÓRIA</span>
+  {{if .User}}{{with .Status}}<span>CHAIN {{.ChainID}} · BLOCO ATUAL {{int .Head}}</span>{{end}}{{end}}
+</footer>
+<div id="nav-loader" hidden role="status" aria-live="polite">
+  <div class="nl-box">
+    <div class="nl-logo">{{template "logo" .}}</div>
+    <span class="nl-bar"><i></i></span>
+    <span class="nl-txt">Carregando…</span>
+  </div>
+</div>
+<script src="/static/theme.js" defer></script>
+<script src="/static/live.js" defer></script>
+<script src="/static/nav.js" defer></script>
+<script src="/static/copy.js" defer></script>
+</body>
+</html>
+
+{{define "addr"}}{{with label .}}<a class="alabel" href="/address/{{$.Hex}}" title="{{.}} · {{$.Hex}}"><span class="lab">{{.}}</span><span class="mono sub-addr">{{short $.Hex}}</span></a>{{else}}<a class="mono" href="/address/{{.Hex}}" title="{{.Hex}}">{{short .Hex}}</a>{{end}}{{end}}
+{{define "logo"}}{{if .Logo}}<span class="logo-img{{if .LogoDark}} has-dark{{end}}"><img class="li-light" src="{{.Logo}}" alt="">{{if .LogoDark}}<img class="li-dark" src="{{.LogoDark}}" alt="">{{end}}</span>{{else}}<span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 11c3.7-3.5 7.3 3.5 11 0s7.3 3.5 11 0M5 16c3.7-3.5 7.3 3.5 11 0s7.3 3.5 11 0M5 21c3.7-3.5 7.3 3.5 11 0s7.3 3.5 11 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span>{{end}}{{end}}
+{{/* logo negativo: cabecalho e modulos escuros (fundo escuro nos dois temas) */}}
+{{define "logo-neg"}}{{with or .LogoDark .Logo}}<span class="logo-img"><img src="{{.}}" alt="Núclea"></span>{{else}}<span class="logo-placeholder">NÚCLEA</span>{{/* TODO: logo oficial */}}{{end}}{{end}}
+{{/* grafismo da marca: um por tela, sempre para a direita, ponta = metade da altura */}}
+{{define "grafismo"}}<svg class="grafismo" viewBox="0 0 160 96" aria-hidden="true"><polygon points="0,0 112,0 160,48 112,96 0,96"/></svg>{{end}}
+{{define "copy"}}<button type="button" class="copy" data-copy="{{.}}" title="Copiar {{.}}">Copiar</button>{{end}}
+{{define "ago"}}<span data-ts="{{.}}">{{ago .}}</span>{{end}}
+{{define "lbl"}}{{with label .}} <span class="lab">{{.}}</span>{{end}}{{end}}
+{{define "txlink"}}<a class="mono" href="/tx/{{.Hex}}" title="{{.Hex}}">{{short .Hex}}</a>{{end}}
+{{define "pager"}}
+{{if gt .Pages 1}}
+<div class="pager">
+  {{if .HasPrev}}<a href="{{.Base}}page=1">« Primeira</a><a href="{{.Base}}page={{.Prev}}">‹ Anterior</a>{{else}}<span class="dis">« Primeira</span><span class="dis">‹ Anterior</span>{{end}}
+  <span class="pos">Página {{int .Page}} de {{int .Pages}} · {{int .Total}} itens</span>
+  {{if .HasNext}}<a href="{{.Base}}page={{.Next}}">Próxima ›</a><a href="{{.Base}}page={{.Pages}}">Última »</a>{{else}}<span class="dis">Próxima ›</span><span class="dis">Última »</span>{{end}}
+</div>
+{{end}}
+{{end}}
+{{define "status"}}{{if eq . 1}}<span class="badge ok">Sucesso</span>{{else}}<span class="badge err">Falhou</span>{{end}}{{end}}

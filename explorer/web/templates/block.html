@@ -1,0 +1,40 @@
+{{define "content"}}
+<header class="pagehead"><div class="ph-text"><span class="eyebrow">Explorer · Bloco</span><h1>{{int .Block.Number}}</h1></div>{{template "grafismo"}}</header>
+<div class="toolbar" id="lv-blocknav" data-live="swap">
+  <div class="toggle">
+    {{if .HasPrev}}<a href="/block/{{usub .Block.Number 1}}">‹ Anterior</a>{{end}}
+    {{if .HasNext}}<a href="/block/{{uadd .Block.Number 1}}">Próximo ›</a>{{end}}
+  </div>
+</div>
+<section class="panel">
+  <dl class="kv">
+    <dt>Número</dt><dd>{{int .Block.Number}}</dd>
+    <dt>Hash</dt><dd class="mono wrapall">{{.Block.Hash.Hex}} {{template "copy" .Block.Hash.Hex}}</dd>
+    <dt>Data/hora</dt><dd>{{time .Block.Timestamp}} <span class="muted">({{template "ago" .Block.Timestamp}})</span></dd>
+    <dt>Proponente (QBFT)</dt><dd><a class="mono" href="/address/{{.Block.Miner.Hex}}">{{.Block.Miner.Hex}}</a>{{template "lbl" .Block.Miner}}</dd>
+    <dt>Transações</dt><dd>{{.Block.TxCount}}</dd>
+    <dt>Gas usado</dt><dd>{{int .Block.GasUsed}}</dd>
+    <dt>Tamanho</dt><dd>{{int .Block.Size}} bytes</dd>
+  </dl>
+</section>
+{{if .Txs}}
+<section class="panel">
+  <h2>Transações do bloco</h2>
+  <table>
+    <thead><tr><th>#</th><th>txId</th><th>Método</th><th>De</th><th>Para</th><th>Status</th></tr></thead>
+    <tbody id="lv-blocktxs" data-live="rows">
+    {{range .Txs}}
+      <tr data-key="{{.Hash.Hex}}">
+        <td>{{.Index}}</td>
+        <td>{{template "txlink" .Hash}}</td>
+        <td><span class="tag">{{with method .Input}}{{.}}{{else}}{{if .HasContract}}deploy{{else}}transferência{{end}}{{end}}</span></td>
+        <td>{{template "addr" .From}}</td>
+        <td>{{if .HasTo}}{{template "addr" .To}}{{if isToken .To}} <span class="tag tok">{{$.Token.Symbol}}</span>{{end}}{{else}}<span class="muted">criação de contrato</span>{{end}}</td>
+        <td>{{template "status" .Status}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
+{{end}}

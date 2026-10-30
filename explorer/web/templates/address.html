@@ -1,0 +1,57 @@
+{{define "content"}}
+<header class="pagehead"><div class="ph-text"><span class="eyebrow">Explorer · {{if .IsContract}}Contrato{{else}}Endereço{{end}}</span><h1>{{with label .Addr}}{{.}}{{else}}{{short .Addr.Hex}}{{end}}</h1>{{if isToken .Addr}}<p class="ph-sub"><span class="tag tok">contrato {{.Token.Symbol}}</span></p>{{end}}</div>{{template "grafismo"}}</header>
+<section class="panel">
+  <dl class="kv" id="lv-addr" data-live="swap">
+    {{with label .Addr}}<dt>Rótulo</dt><dd><span class="lab big">{{.}}</span></dd>{{end}}
+    <dt>Endereço</dt><dd class="mono wrapall">{{.Addr.Hex}} {{template "copy" .Addr.Hex}}</dd>
+    <dt>Tipo</dt><dd>{{if .IsContract}}Contrato ({{int .CodeSize}} bytes de código){{else}}Conta (EOA){{end}}</dd>
+    <dt>Saldo nativo</dt><dd>{{if .BalanceOK}}{{native .Balance}}{{else}}<span class="muted">indisponível</span>{{end}}</dd>
+    {{if .Token.Enabled}}
+    <dt>Saldo {{.Token.Symbol}}</dt>
+    <dd>{{if .TokLive}}<b>{{tok .TokLive}}</b> <span class="muted">(balanceOf no contrato)</span>{{else}}{{tok .TokBal}} <span class="muted">(calculado pelos eventos)</span>{{end}}
+        {{if .TokCount}} · <a href="/brln?addr={{.Addr.Hex}}">{{.TokCount}} transferências</a>{{end}}</dd>
+    {{end}}
+    <dt>Transações</dt><dd>{{int .Pager.Total}}</dd>
+  </dl>
+</section>
+
+{{if .Transfers}}
+<section class="panel">
+  <h2>Últimas transferências {{.Token.Symbol}} <a class="more" href="/brln?addr={{.Addr.Hex}}">ver todas</a></h2>
+  <table>
+    <thead><tr><th>txId</th><th>Data/hora</th><th>De</th><th>Para</th><th class="r">Valor</th></tr></thead>
+    <tbody id="lv-transfers" data-live="rows">
+    {{range .Transfers}}
+      <tr data-key="{{.TxHash.Hex}}-{{.LogIndex}}">
+        <td>{{template "txlink" .TxHash}}</td><td>{{time .Timestamp}}</td>
+        <td>{{if isZero .From}}<span class="tag">emissão</span>{{else}}{{template "addr" .From}}{{end}}</td>
+        <td>{{if isZero .To}}<span class="tag">queima</span>{{else}}{{template "addr" .To}}{{end}}</td>
+        <td class="r num {{if eq .From $.Addr}}neg{{else}}pos{{end}}">{{if eq .From $.Addr}}−{{else}}+{{end}}{{tok .Value}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
+
+<section class="panel">
+  <h2>Transações</h2>
+  <table>
+    <thead><tr><th>txId</th><th>Bloco</th><th>Data/hora</th><th>Método</th><th>De</th><th>Para</th><th>Status</th></tr></thead>
+    <tbody id="lv-txs" data-live="rows">
+    {{range .Txs}}
+      <tr data-key="{{.Hash.Hex}}">
+        <td>{{template "txlink" .Hash}}</td>
+        <td><a href="/block/{{.BlockNumber}}">{{int .BlockNumber}}</a></td>
+        <td>{{time .Timestamp}}</td>
+        <td><span class="tag">{{with method .Input}}{{.}}{{else}}{{if .HasContract}}deploy{{else}}transferência{{end}}{{end}}</span></td>
+        <td>{{if eq .From $.Addr}}<b class="mono">este</b>{{else}}{{template "addr" .From}}{{end}}</td>
+        <td>{{if .HasTo}}{{if eq .To $.Addr}}<b class="mono">este</b>{{else}}{{template "addr" .To}}{{end}}{{else}}<span class="muted">criação</span>{{end}}</td>
+        <td>{{template "status" .Status}}</td>
+      </tr>
+    {{else}}<tr><td colspan="7" class="muted">Nenhuma transação indexada para este endereço.</td></tr>{{end}}
+    </tbody>
+  </table>
+  <div id="lv-pager" data-live="swap">{{template "pager" .Pager}}</div>
+</section>
+{{end}}

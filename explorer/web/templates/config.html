@@ -1,0 +1,98 @@
+{{define "content"}}
+<header class="pagehead"><div class="ph-text"><span class="eyebrow">Administração</span><h1>Configuração</h1><p class="ph-sub">Página restrita ao usuário admin.</p></div>{{template "grafismo"}}</header>
+
+{{if .Saved}}<div class="banner ok inline">{{.Notice}}</div>{{end}}
+{{if .Overrides}}<div class="banner info inline">Atenção: o explorer foi iniciado com {{range $i, $o := .Overrides}}{{if $i}} e {{end}}<code>{{$o}}</code>{{end}}. Esses valores <b>prevalecem sobre o que for salvo aqui</b> no próximo reinício. Para gerenciar só por esta tela, remova essas opções do serviço.</div>{{end}}
+
+<section class="panel" id="conexao">
+  <h2>Conexão</h2>
+  {{if .Err}}<div class="banner warn inline">{{.Err}}</div>{{end}}
+  <form class="cfg" method="post" action="{{.Admin}}">
+    <label for="rpc">Endereço RPC do nó Besu</label>
+    <input id="rpc" name="rpc" value="{{.Form.RPC}}" placeholder="{{.Defaults.RPC}}" spellcheck="false" required>
+    <p class="hint">Padrão: <code>{{.Defaults.RPC}}</code> (o nó na mesma máquina). APIs usadas: <code>ETH</code>, <code>NET</code> e, opcionalmente, <code>QBFT</code> (validadores) e <code>TXPOOL</code> (página Pendentes).</p>
+
+    <label for="brln">Endereço do contrato BRLN (ERC-20)</label>
+    <input id="brln" name="brln" value="{{.Form.BRLN}}" placeholder="0x… (vazio desativa a página BRLN)" spellcheck="false">
+    <p class="hint">Padrão: vazio. Com um endereço, a página <b>BRLN</b> lista as transferências lidas dos eventos <code>Transfer</code> desse contrato.</p>
+
+    <div class="actions">
+      <button type="submit" name="action" value="save">Salvar e reindexar</button>
+      <button type="submit" name="action" value="defaults" class="secondary" formnovalidate
+        onclick="return confirm('Restaurar os valores padrão e reindexar do zero?')">Restaurar padrões</button>
+    </div>
+    <p class="hint">Antes de aplicar, o explorer confere se o nó responde e se existe um contrato no endereço do BRLN. Ao salvar, o banco em memória é descartado e a rede é reindexada. Rótulos e logo são mantidos.</p>
+  </form>
+</section>
+
+<section class="panel" id="rotulos">
+  <h2>Rótulos de endereços <span class="muted">({{len .Labels}})</span></h2>
+  <p class="hint">O rótulo aparece no lugar do endereço em todas as páginas (transações, blocos, BRLN, pendentes) e também pode ser usado na busca. Salvar um rótulo não reindexa a rede.</p>
+  {{if .LabelErr}}<div class="banner warn inline">{{.LabelErr}}</div>{{end}}
+  <form class="cfg row" method="post" action="{{.Admin}}#rotulos">
+    <input type="hidden" name="action" value="label-save">
+    <div class="field grow"><label for="laddr">Endereço</label>
+      <input id="laddr" name="address" value="{{.LabelForm.Address}}" placeholder="0x…" spellcheck="false" required></div>
+    <div class="field"><label for="ltext">Rótulo</label>
+      <input id="ltext" name="label" value="{{.LabelForm.Label}}" placeholder="ex.: Núclea – operador" maxlength="40" required></div>
+    <div class="field end"><button type="submit">{{if .LabelForm.Label}}Atualizar{{else}}Adicionar{{end}}</button></div>
+  </form>
+  {{if .Labels}}
+  <table class="labels">
+    <thead><tr><th>Rótulo</th><th>Endereço</th><th class="r">Ações</th></tr></thead>
+    <tbody>
+    {{range .Labels}}
+      <tr>
+        <td><span class="lab">{{.Label}}</span></td>
+        <td><a class="mono" href="/address/{{.Address.Hex}}">{{.Address.Hex}}</a></td>
+        <td class="r actions-cell">
+          <a href="{{$.Admin}}?edit={{.Address.Hex}}#rotulos">editar</a>
+          <form method="post" action="{{$.Admin}}#rotulos" class="inline">
+            <input type="hidden" name="action" value="label-delete"><input type="hidden" name="address" value="{{.Address.Hex}}">
+            <button type="submit" class="link danger" onclick="return confirm('Remover o rótulo deste endereço?')">remover</button>
+          </form>
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">Nenhum rótulo cadastrado.</p>{{end}}
+</section>
+
+<section class="panel" id="logo">
+  <h2>Logo</h2>
+  <p class="hint">Aparece no canto superior esquerdo e, animado, na tela de carregamento. PNG, JPG, WebP ou SVG, até 512 KB. Prefira SVG com fundo transparente.</p>
+  {{if .LogoErr}}<div class="banner warn inline">{{.LogoErr}}</div>{{end}}
+  {{range .LogoSlots}}
+  <div class="logo-row">
+    <div class="logo-preview {{if .Dark}}on-dark{{else}}on-light{{end}}">{{if .URL}}<img src="{{.URL}}" alt="{{.Title}}">{{else}}<span class="muted small">sem logo<br>(marca ≋ padrão)</span>{{end}}</div>
+    <div class="logo-forms">
+      <b>{{.Title}}</b>
+      <span class="muted small">{{.Hint}}{{if and .URL (not .Uploaded)}} Em uso: logo padrão embutido.{{end}}</span>
+      <form class="cfg" method="post" action="{{$.Admin}}#logo" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="logo-upload"><input type="hidden" name="variant" value="{{.Variant}}">
+        <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" required>
+        <div class="actions"><button type="submit">{{if .Uploaded}}Trocar{{else}}Enviar{{end}}</button></div>
+      </form>
+      {{if .Uploaded}}
+      <form method="post" action="{{$.Admin}}#logo">
+        <input type="hidden" name="action" value="logo-remove"><input type="hidden" name="variant" value="{{.Variant}}">
+        <button type="submit" class="secondary" onclick="return confirm('Remover este logo?')">Remover</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</section>
+
+<section class="panel">
+  <h2>Em uso agora</h2>
+  <dl class="kv">
+    <dt>RPC</dt><dd class="mono wrapall">{{.Current.RPC}}</dd>
+    <dt>BRLN</dt><dd class="mono wrapall">{{if .Current.BRLN}}<a href="/address/{{.Current.BRLN}}">{{.Current.BRLN}}</a>{{else}}<span class="muted">não configurado</span>{{end}}</dd>
+    <dt>Rede</dt><dd>chainId {{.Status.ChainID}} · bloco atual {{int .Status.Head}} · indexação iniciada {{.StartedAgo}}</dd>
+    <dt>Arquivo</dt><dd class="mono wrapall">{{.Path}}</dd>
+    <dt>Acesso</dt><dd>todas as páginas exigem login; esta tela só abre para o usuário <b>admin</b>. Senhas trocáveis por <code>--admin-password</code> / <code>--client-password</code>.</dd>
+  </dl>
+</section>
+{{end}}

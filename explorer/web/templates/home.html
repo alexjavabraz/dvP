@@ -1,0 +1,48 @@
+{{define "content"}}
+<header class="pagehead"><div class="ph-text"><span class="eyebrow">NucleaChain · Explorer</span><h1>Visão geral</h1><p class="ph-sub">Blocos, transações e {{if .Token.Enabled}}{{.Token.Symbol}}{{else}}tokens{{end}} da rede, atualizados a cada bloco.</p></div>{{template "grafismo"}}</header>
+<section class="cards" id="lv-cards" data-live="swap">
+  <div class="card"><div class="k">Bloco atual</div><div class="v">{{int .Status.Head}}</div><div class="s">chainId {{.Status.ChainID}}</div></div>
+  <div class="card"><div class="k">Blocos indexados</div><div class="v">{{int .Stats.Indexed}}</div><div class="s">{{int .Stats.NonEmpty}} com transações</div></div>
+  <div class="card"><div class="k">Transações</div><div class="v">{{int .Stats.TxCount}}</div><div class="s">{{if .Status.InitialDone}}sincronizado{{else}}sincronizando {{pct .Status.Percent}}%{{end}}</div></div>
+  {{if .Token.Enabled}}
+  <div class="card"><div class="k">{{.Token.Symbol}}</div><div class="v">{{int .Stats.Transfers}}</div><div class="s">transferências · {{int .Stats.Holders}} carteiras com saldo</div></div>
+  {{end}}
+</section>
+
+{{if .Status.Validators}}
+<section class="panel">
+  <h2>Validadores QBFT <span class="muted">({{len .Status.Validators}})</span></h2>
+  <div class="chips" id="lv-vals" data-live="swap">{{range .Status.Validators}}{{template "addr" .}}{{end}}</div>
+</section>
+{{end}}
+
+<div class="grid2">
+  <section class="panel">
+    <h2>Últimos blocos <a class="more" href="/blocks">ver todos</a></h2>
+    <table>
+      <thead><tr><th>Bloco</th><th>Quando</th><th>Proponente</th><th class="r">Txs</th></tr></thead>
+      <tbody id="lv-blocks" data-live="rows">
+      {{range .Blocks}}
+        <tr data-key="{{.Number}}"><td><a href="/block/{{.Number}}">{{int .Number}}</a></td><td title="{{time .Timestamp}}">{{template "ago" .Timestamp}}</td><td>{{template "addr" .Miner}}</td><td class="r">{{if gt .TxCount 0}}<b>{{.TxCount}}</b>{{else}}<span class="muted">0</span>{{end}}</td></tr>
+      {{else}}<tr><td colspan="4" class="muted">Nenhum bloco indexado ainda.</td></tr>{{end}}
+      </tbody>
+    </table>
+  </section>
+  <section class="panel">
+    <h2>Últimas transações <a class="more" href="/txs">ver todas</a></h2>
+    <table>
+      <thead><tr><th>txId</th><th>Método</th><th>De → Para</th><th>Status</th></tr></thead>
+      <tbody id="lv-txs" data-live="rows">
+      {{range .Txs}}
+        <tr data-key="{{.Hash.Hex}}">
+          <td>{{template "txlink" .Hash}}<div class="sub">bloco <a href="/block/{{.BlockNumber}}">{{int .BlockNumber}}</a> · {{template "ago" .Timestamp}}</div></td>
+          <td><span class="tag">{{with method .Input}}{{.}}{{else}}{{if .HasContract}}deploy{{else}}transferência{{end}}{{end}}</span></td>
+          <td>{{template "addr" .From}} → {{if .HasTo}}{{template "addr" .To}}{{else}}<span class="muted">criação</span>{{end}}</td>
+          <td>{{template "status" .Status}}</td>
+        </tr>
+      {{else}}<tr><td colspan="4" class="muted">Nenhuma transação indexada ainda.</td></tr>{{end}}
+      </tbody>
+    </table>
+  </section>
+</div>
+{{end}}

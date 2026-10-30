@@ -1,0 +1,27 @@
+{{define "content"}}
+<header class="pagehead"><div class="ph-text"><span class="eyebrow">Explorer</span><h1>Blocos</h1></div>{{template "grafismo"}}</header>
+<div class="toolbar">
+  <div class="toggle">
+    <a href="/blocks" {{if not .Only}}class="on"{{end}}>Todos</a>
+    <a href="/blocks?comtx=1" {{if .Only}}class="on"{{end}}>Só com transações</a>
+  </div>
+</div>
+<section class="panel">
+  <table>
+    <thead><tr><th>Bloco</th><th>Data/hora</th><th>Hash</th><th>Proponente</th><th class="r">Txs</th><th class="r">Gas usado</th></tr></thead>
+    <tbody id="lv-blocks" data-live="rows">
+    {{range .Blocks}}
+      <tr data-key="{{.Number}}">
+        <td><a href="/block/{{.Number}}">{{int .Number}}</a></td>
+        <td>{{time .Timestamp}} <span class="muted">{{template "ago" .Timestamp}}</span></td>
+        <td class="mono">{{short .Hash.Hex}}</td>
+        <td>{{template "addr" .Miner}}</td>
+        <td class="r">{{if gt .TxCount 0}}<b>{{.TxCount}}</b>{{else}}<span class="muted">0</span>{{end}}</td>
+        <td class="r">{{int .GasUsed}}</td>
+      </tr>
+    {{else}}<tr><td colspan="6" class="muted">Nenhum bloco.</td></tr>{{end}}
+    </tbody>
+  </table>
+  <div id="lv-pager" data-live="swap">{{template "pager" .Pager}}</div>
+</section>
+{{end}}
